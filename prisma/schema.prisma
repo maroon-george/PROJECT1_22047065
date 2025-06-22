@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+//output   = "../src/generated/prisma"
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model student {
+  id             Int     @id @default(autoincrement())
+  first_name     String
+  last_name      String
+  email          String @unique
+  program        String
+  year_of_study  Int
+  password       String
+  
+  // Relations
+  fees           fee[]
+  enrollments    enrollment[]
+}
+
+model fee {
+  id            Int      @id @default(autoincrement())
+  student_id    Int
+  amount        Float
+  payment_date  DateTime @default(now())
+  semester      String
+  academic_year String
+  status        String   @default("PENDING") // PENDING, PAID, OVERDUE
+  
+  // Relations
+  student       student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
+}
+
+model course {
+  id          Int    @id @default(autoincrement())
+  code        String @unique
+  name        String
+  credits     Int
+  department  String
+  
+  // Relations
+  enrollments enrollment[]
+  lecturer_assignments lecturer_course[]
+}
+
+model enrollment {
+  id         Int      @id @default(autoincrement())
+  student_id Int
+  course_id  Int
+  semester   String
+  academic_year String
+  grade      String?  // A, B, C, D, F, etc.
+  enrollment_date DateTime @default(now())
+  
+  // Relations
+  student    student @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course     course  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+}
+
+model lecturer {
+  id         Int    @id @default(autoincrement())
+  first_name String
+  last_name  String
+  email      String @unique
+  department String
+  title      String // Professor, Associate Professor, etc.
+  
+  // Relations
+  course_assignments lecturer_course[]
+  ta_assignments     lecturer_ta[]
+}
+
+model lecturer_course {
+  id          Int      @id @default(autoincrement())
+  lecturer_id Int
+  course_id   Int
+  semester    String
+  academic_year String
+  
+  // Relations
+  lecturer    lecturer @relation(fields: [lecturer_id], references: [id], onDelete: Cascade)
+  course      course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+}
+
+model teaching_assistant {
+  id         Int    @id @default(autoincrement())
+  first_name String
+  last_name  String
+  email      String @unique
+  department String
+  student_id Int?   // If TA is also a student
+  
+  // Relations
+  lecturer_assignments lecturer_ta[]
+}
+
+model lecturer_ta {
+  id                    Int    @id @default(autoincrement())
+  lecturer_id           Int
+  teaching_assistant_id Int
+  course_id             Int?   // Optional: specific course assignment
+  semester              String
+  academic_year         String
+  
+  // Relations
+  lecturer              lecturer @relation(fields: [lecturer_id], references: [id], onDelete: Cascade)
+  teaching_assistant    teaching_assistant @relation(fields: [teaching_assistant_id], references: [id], onDelete: Cascade)
+}
